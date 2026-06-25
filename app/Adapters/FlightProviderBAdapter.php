@@ -12,7 +12,7 @@ class FlightProviderBAdapter implements FlightProviderAdapterInterface
     /** @return FlightDTO[] */
     public function getFlights(): array
     {
-        $result = Http::get(config('services.flight_providers.provider_b_url'));
+        $result = Http::get(config('flightprovider.provider_b_url'));
 
         return array_map(
           fn ($flight) => $this->normalize($flight),
