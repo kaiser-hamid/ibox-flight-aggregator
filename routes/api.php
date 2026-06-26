@@ -4,6 +4,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('test', function (Request $request) {
-    $data = (new \App\Adapters\FlightProviderBAdapter)->getFlights();
+    $data = app(\App\Services\FlightAggregatorService::class)->search([]);
     return $data;
 });
