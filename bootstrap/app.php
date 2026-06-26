@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -25,4 +26,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        $exceptions->render(function (Throwable $e, Request $request) {
+
+            $statusCode = $e instanceof HttpExceptionInterface
+                ? $e->getStatusCode()
+                : 500;
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => app()->isProduction() ? [] : $e->getTrace(),
+            ], $statusCode);
+        });
     })->create();
