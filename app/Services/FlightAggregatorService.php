@@ -21,21 +21,40 @@ class FlightAggregatorService
 
     public function search(array $params = []): array
     {
-        //merging flight data into a single collection
-        $allFlights = collect([
+        $allFlights = $this->fetchFromProviders();
+
+        // parsing the lowest price record from duplicate flights
+        $deDuplicatedFlights = $this->deDuplicate($allFlights);
+
+        //filter flight data
+        $filteredFlights = $this->filter($deDuplicatedFlights, $params);
+
+        //Sort flight data
+        $sortedFlights = $this->sort($filteredFlights, $params);
+
+        return $sortedFlights->values()->all();
+    }
+
+    private function fetchFromProviders(): Collection
+    {
+        return collect([
             ...$this->flightProviderA->getFlights(),
             ...$this->flightProviderB->getFlights(),
             ...$this->flightProviderC->getFlights(),
         ]);
+    }
 
-        // parsing the lowest price record from duplicate flights
-        $deDuplicatedFlights = $allFlights
+    private function deDuplicate(Collection $flights): Collection
+    {
+        return $flights
             ->groupBy( fn (FlightDTO $f) => $f->flightId)
             ->map(fn (Collection $group) => $group->sortBy('price')->first())
             ->values();
+    }
 
-        //filter flight data
-        $filteredFlights = $deDuplicatedFlights
+    private function filter(Collection $flights, array $params): Collection
+    {
+        return $flights
             ->when(
                 isset($params['from']),
                 fn ($c) => $c->filter(
@@ -66,15 +85,14 @@ class FlightAggregatorService
                     fn (FlightDTO $f) => $f->stops === (int) $params['stops']
                 )
             );
+    }
 
-        //Sort flight data
-        $sortedFlights = match ($params['sort_by'] ?? 'price') {
-            'departure' => $filteredFlights->sortBy(fn (FlightDTO $f) => $f->departureTime),
-            default => $filteredFlights->sortBy(fn (FlightDTO $f) => $f->price)
+    private function sort(Collection $flights, array $params): Collection
+    {
+        return match ($params['sort_by'] ?? 'price') {
+            'departure' => $flights->sortBy(fn (FlightDTO $f) => $f->departureTime),
+            default => $flights->sortBy(fn (FlightDTO $f) => $f->price)
         };
-
-
-        return $sortedFlights->values()->all();
     }
 
     public function getProviderCount(): int
