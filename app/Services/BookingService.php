@@ -23,4 +23,9 @@ class BookingService
     {
         return 'BK-' . strtoupper(Str::random(6));
     }
+
+    public function findByReference(string $reference): Booking
+    {
+        return Booking::where('reference', $reference)->firstOrFail();
+    }
 }

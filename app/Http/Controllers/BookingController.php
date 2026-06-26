@@ -23,4 +23,16 @@ class BookingController extends Controller
         ->response()
         ->setStatusCode(Response::HTTP_CREATED);
     }
+
+    public function show(BookingService $bookingService, string $reference): JsonResponse
+    {
+        $booking = $bookingService->findByReference($reference);
+
+        return (new BookingResource($booking))
+            ->additional([
+                'status' => true,
+                'message' => 'Booking retrieved successfully.'
+            ])
+            ->response();
+    }
 }
