@@ -13,4 +13,4 @@ Route::get('test', function (Request $request) {
 Route::get('flights/search', [FlightController::class, 'search']);
 
 Route::post('bookings', [BookingController::class, 'store']);
-Route::post('bookings/{reference}', [BookingController::class, 'show']);
+Route::get('bookings/{reference}', [BookingController::class, 'show']);

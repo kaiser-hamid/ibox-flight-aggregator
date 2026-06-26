@@ -21,7 +21,11 @@ class BookingService
 
     private function generateReference(): string
     {
-        return 'BK-' . strtoupper(Str::random(6));
+        do {
+            $reference = 'BK-' . strtoupper(Str::random(6));
+        } while (Booking::where('reference', $reference)->exists());
+
+        return $reference;
     }
 
     public function findByReference(string $reference): Booking
