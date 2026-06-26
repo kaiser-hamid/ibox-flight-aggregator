@@ -129,7 +129,8 @@ GET /api/flights/search
     "total":               7,
     "providers_queried":   3,
     "providers_succeeded": 3,
-    "providers_failed":    0,
+    "providers_failed":    0, 
+    "complete":            true,
     "filters_applied": {
       "from":       "DAC",
       "to":         "DXB",

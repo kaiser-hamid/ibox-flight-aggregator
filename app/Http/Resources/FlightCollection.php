@@ -33,6 +33,7 @@ class FlightCollection extends ResourceCollection
      */
     public function toArray(Request $request): array
     {
+        $providersFailed = $this->providersQueried - $this->providersSucceeded;
         return [
             'success' => true,
             'message' => 'Flight list',
@@ -41,7 +42,8 @@ class FlightCollection extends ResourceCollection
                 'total'               => $this->collection->count(),
                 'providers_queried'   => $this->providersQueried,
                 'providers_succeeded' => $this->providersSucceeded,
-                'providers_failed'    => $this->providersQueried - $this->providersSucceeded,
+                'providers_failed'    => $providersFailed,
+                'complete'            => $providersFailed === 0,
                 'filters_applied'     => $this->filtersApplied,
             ],
         ];
