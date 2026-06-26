@@ -25,15 +25,6 @@ class StoreBookingRequest extends FormRequest
         return [
             'flight_id'              => 'required|string',
 
-            'flight_data'            => 'required|array',
-            'flight_data.flight_id'  => 'required|string',
-            'flight_data.carrier'    => 'required|string',
-            'flight_data.from'       => 'required|string|size:3',
-            'flight_data.to'         => 'required|string|size:3',
-            'flight_data.price'      => 'required|numeric|min:0',
-            'flight_data.currency'   => 'required|string|size:3',
-            'flight_data.source'     => 'required|string',
-
             'passengers'             => 'required|array|min:1',
             'passengers.*.name'      => 'required|string',
             'passengers.*.email'     => 'required|string',

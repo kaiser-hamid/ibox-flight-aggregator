@@ -3,19 +3,34 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class BookingService
 {
+    public function __construct(
+        private FlightAggregatorService $flightAggregatorService
+    ) {}
+
     public function create(array $data): Booking
     {
+        // Resolve flight data from server-side cache
+        try {
+            $flightData = $this->flightAggregatorService->findFlight($data['flight_id']);
+        } catch (ModelNotFoundException) {
+            throw new UnprocessableEntityHttpException(
+                'Flight not found or search session expired. Please search again.'
+            );
+        }
+
         return Booking::create([
             'reference'   => $this->generateReference(),
             'flight_id'   => $data['flight_id'],
-            'flight_data' => $data['flight_data'],
+            'flight_data' => $flightData,
             'passengers'  => $data['passengers'],
-            'total_price' => $data['flight_data']['price'] * count($data['passengers']),
-            'currency'    => $data['flight_data']['currency'],
+            'total_price' => $flightData['price'] * count($data['passengers']),
+            'currency'    => $flightData['currency'],
         ]);
     }
 

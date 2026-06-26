@@ -151,15 +151,6 @@ POST /api/bookings
 ```json
 {
     "flight_id": "BS118_DAC_DXB_2026-07-01",
-    "flight_data": {
-        "flight_id": "BS118_DAC_DXB_2026-07-01",
-        "carrier": "BS",
-        "from": "DAC",
-        "to": "DXB",
-        "price": "265",
-        "currency": "USD",
-        "source": "provider_a"
-    },
     "passengers": [
         {
             "name": "Kaiser Hamid",
@@ -249,6 +240,9 @@ The stable flight identifier is `flight_id` that is made with the combination of
 Same flight appearing across multiple providers is
 deduplicated by `flight_id`.
 The lowest price is retained.
+
+**Temporary caching of Flight data:**
+After searching from providers, the records is stored in `flight_cache` table with 30 minutes expiry timestamp. So that, user cannot tamper with price or any other data. If it is expired, user have to search again.
 
 **Flight Snapshot on Booking:**
 Flight data is stored as a JSON snapshot at booking time,

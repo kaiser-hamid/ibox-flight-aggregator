@@ -7,8 +7,10 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -38,7 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     'success' => false,
                     'message' => 'Validation failed.',
                     'errors' => $e->errors(),
-                ], 422);
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
             if ($e instanceof NotFoundHttpException) {
@@ -46,7 +48,15 @@ return Application::configure(basePath: dirname(__DIR__))
                     'success' => false,
                     'message' => "Resource not found.",
                     'errors' => []
-                ], 404);
+                ], Response::HTTP_NOT_FOUND);
+            }
+
+            if ($e instanceof UnprocessableEntityHttpException) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                    'errors' => []
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
 
             $status = $e instanceof HttpExceptionInterface

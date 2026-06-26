@@ -6,6 +6,7 @@ use App\Adapters\FlightProviderAAdapter;
 use App\Adapters\FlightProviderBAdapter;
 use App\Adapters\FlightProviderCAdapter;
 use App\DTOs\FlightDTO;
+use App\Models\FlightCache;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -32,7 +33,12 @@ class FlightAggregatorService
         //Sort flight data
         $sortedFlights = $this->sort($filteredFlights, $params);
 
-        return $sortedFlights->values()->all();
+        $results = $sortedFlights->values()->all();
+
+        // Cache results so booking can look them up without trusting the client
+        $this->cacheFlights($results);
+
+        return $results;
     }
 
     private function fetchFromProviders(): Collection
@@ -98,6 +104,43 @@ class FlightAggregatorService
     public function getProviderCount(): int
     {
         return 3;
+    }
+
+    private function cacheFlights(array $flights): void
+    {
+        $expiresAt = now()->addMinutes(30);
+
+        foreach ($flights as $flight) {
+            FlightCache::updateOrCreate(
+                ['flight_id' => $flight->flightId],
+                [
+                    'flight_data' => [
+                        'flight_id'      => $flight->flightId,
+                        'flight_number'  => $flight->flightNumber,
+                        'carrier'        => $flight->carrier,
+                        'from'           => $flight->from,
+                        'to'             => $flight->to,
+                        'departure_time' => $flight->departureTime,
+                        'arrival_time'   => $flight->arrivalTime,
+                        'stops'          => $flight->stops,
+                        'price'          => $flight->price,
+                        'currency'       => $flight->currency,
+                        'source'         => $flight->source,
+                    ],
+                    'expires_at' => $expiresAt,
+                ]
+            );
+        }
+    }
+
+    public function findFlight(string $flightId): array
+    {
+        $cached = FlightCache::where('flight_id', $flightId)
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->firstOrFail();
+
+        return $cached->flight_data;
     }
 
 }
