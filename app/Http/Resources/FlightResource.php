@@ -27,6 +27,7 @@ class FlightResource extends JsonResource
             'stops'          => $this->stops,
             'price'          => $this->price,
             'currency'       => $this->currency,
+            'source'       => $this->source
         ];
     }
 }
