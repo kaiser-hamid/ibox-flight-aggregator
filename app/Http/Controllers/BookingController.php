@@ -5,34 +5,32 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreBookingRequest;
 use App\Http\Resources\BookingResource;
 use App\Services\BookingService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response;
 
 class BookingController extends Controller
 {
+    use ApiResponse;
     public function store(StoreBookingRequest $request, BookingService $bookingService): JsonResponse
     {
         $booking = $bookingService->create($request->validated());
 
-        return (new BookingResource($booking))
-            ->additional([
-            'status' => true,
-            'message' => 'Booking created successfully.'
-        ])
-        ->response()
-        ->setStatusCode(Response::HTTP_CREATED);
+        return $this->success(
+            data: new BookingResource($booking),
+            message: 'Booking created successfully.',
+            status: Response::HTTP_CREATED
+        );
     }
 
     public function show(BookingService $bookingService, string $reference): JsonResponse
     {
         $booking = $bookingService->findByReference($reference);
 
-        return (new BookingResource($booking))
-            ->additional([
-                'status' => true,
-                'message' => 'Booking retrieved successfully.'
-            ])
-            ->response();
+        return $this->success(
+            data: new BookingResource($booking),
+            message: 'Booking retrieved successfully.'
+        );
     }
 }

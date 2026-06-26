@@ -173,7 +173,7 @@ POST /api/bookings
 **Response:** `201 Created`
 ```json
 {
-    "status": true,
+    "success": true,
     "message": "Booking created successfully.",
     "data": {
         "reference": "BK-6RZMXJ",
@@ -210,7 +210,7 @@ GET /api/bookings/{reference}
 **Response:** `200 OK`
 ```json
 {
-    "status": true,
+    "success": true,
     "message": "Booking retrieved successfully.",
     "data": {
         "reference": "BK-5ARROM",
