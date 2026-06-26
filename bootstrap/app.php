@@ -1,11 +1,14 @@
 <?php
 
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -28,15 +31,34 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $exceptions->render(function (Throwable $e, Request $request) {
+            $isProduction = app()->isProduction();
 
-            $statusCode = $e instanceof HttpExceptionInterface
+            if ($e instanceof ValidationException) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validation failed.',
+                    'errors' => $e->errors(),
+                ], 422);
+            }
+
+            if ($e instanceof NotFoundHttpException) {
+                return response()->json([
+                    'status' => false,
+                    'message' => "Resource not found.",
+                    'errors' => []
+                ], 404);
+            }
+
+            $status = $e instanceof HttpExceptionInterface
                 ? $e->getStatusCode()
                 : 500;
 
             return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'errors' => app()->isProduction() ? [] : $e->getTrace(),
-            ], $statusCode);
+                'status' => false,
+                'message' => $isProduction ? 'Internal server error!' : $e->getMessage(),
+                'errors' => [
+                    'exception' => $isProduction ? null : class_basename($e)
+                ],
+            ], $status);
         });
     })->create();
