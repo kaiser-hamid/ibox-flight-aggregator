@@ -26,7 +26,7 @@ class SearchFlightRequest extends FormRequest
             'from'       => 'required|string|size:3|alpha',
             'to'         => 'required|string|size:3|alpha',
             'date'       => 'required|date_format:Y-m-d|after_or_equal:today',
-            'passengers' => 'required|integer|min:1|max:9',
+            'passengers' => 'sometimes|integer|min:1|max:9',
             'sort_by'    => 'sometimes|in:price,departure',
             'stops'      => 'sometimes|integer|min:0',
             'max_price'  => 'sometimes|numeric|min:0',
