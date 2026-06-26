@@ -1,58 +1,283 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# iBox Flight Aggregator API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel-based flight search aggregator that unifies results
+from multiple providers into a single, deduplicated response, stores booking and finds booking info.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tech Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- PHP 8.2
+- Laravel 11
+- SQLite
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Architecture & Design Patterns
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Service Layer
+Business logic is kept in dedicated Service classes,
+keeping Controllers thin.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Adapter Pattern
+Each provider has its own Adapter that normalizes
+provider-specific schemas into a unified FlightDTO.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### DTO (Data Transfer Object)
+FlightDTO ensures type-safe data transfer between
+the Adapter and Service layers.
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Project Structure
+app/
+
+├── Adapters/          # Provider-specific normalization
+
+├── Contracts/         # ProviderAdapterInterface
+
+├── DTOs/              # FlightDTO
+
+├── Http/
+
+│   ├── Controllers/   
+
+│   ├── Requests/      
+
+│   └── Resources/     
+
+├── Models/            
+
+├── Services/          # Business logic
+
+└── Traits/            # ApiResponse
+
+
+---
+
+## Local Setup
+
+### Requirements
+- PHP 8.2+
+- Composer
+
+### Installation
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone https://github.com/kaiser-hamid/ibox-flight-aggregator.git
+cd ibox-flight-aggregator
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### Running the Application
 
-## Contributing
+This project requires **two terminal processes:**
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+# Terminal 1 — Main API (port 8000)
+php artisan serve --port=8000
 
-## Code of Conduct
+# Terminal 2 — Mock Provider Server (port 8001)
+php artisan serve --port=8001
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Mock providers simulate real third-party flight data
+sources as local HTTP endpoints on a separate port
+to avoid single-worker deadlock.
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## API Reference
 
-## License
+### Flight Search
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+GET /api/flights/search
+
+| Parameter    | Type    | Required | Description              |
+|--------------|---------|----------|--------------------------|
+| `from`       | string  | Yes      | Origin IATA code         |
+| `to`         | string  | Yes      | Destination IATA code    |
+| `date`       | string  | Yes      | Format: `YYYY-MM-DD`     |
+| `passengers` | integer | No       | Min: 1, Max: 9           |
+| `sort_by`    | string  | No       | `price` (default) or `departure` |
+| `stops`      | integer | No       | Filter by number of stops|
+| `max_price`  | numeric | No       | Filter by maximum price  |
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "flight_id":      "EK585_DAC_DXB_2026-07-01",
+      "flight_number":  "EK585",
+      "carrier":        "EK",
+      "from":           "DAC",
+      "to":             "DXB",
+      "departure_time": "2026-07-01T03:45:00+00:00",
+      "arrival_time":   "2026-07-01T06:50:00+00:00",
+      "duration_mins":  185,
+      "stops":          0,
+      "price":          399.00,
+      "currency":       "USD",
+      "source":         "provider_b"
+    }
+  ],
+  "meta": {
+    "total":               7,
+    "providers_queried":   3,
+    "providers_succeeded": 3,
+    "providers_failed":    0,
+    "filters_applied": {
+      "from":       "DAC",
+      "to":         "DXB",
+      "date":       "2026-07-01",
+      "passengers": 2
+    }
+  }
+}
+```
+
+---
+
+### Create Booking
+
+POST /api/bookings
+
+**Request Body:**
+```json
+{
+    "flight_id": "BS118_DAC_DXB_2026-07-01",
+    "flight_data": {
+        "flight_id": "BS118_DAC_DXB_2026-07-01",
+        "carrier": "BS",
+        "from": "DAC",
+        "to": "DXB",
+        "price": "265",
+        "currency": "USD",
+        "source": "provider_a"
+    },
+    "passengers": [
+        {
+            "name": "Kaiser Hamid",
+            "email": "kaiser@example.com",
+            "passport": "A13276623"
+        }
+    ]
+}
+```
+
+**Response:** `201 Created`
+```json
+{
+    "status": true,
+    "message": "Booking created successfully.",
+    "data": {
+        "reference": "BK-6RZMXJ",
+        "flight_id": "BS118_DAC_DXB_2026-07-01",
+        "flight_data": {
+            "flight_id": "BS118_DAC_DXB_2026-07-01",
+            "carrier": "BS",
+            "from": "DAC",
+            "to": "DXB",
+            "price": "265",
+            "currency": "USD",
+            "source": "provider_a"
+        },
+        "passengers": [
+            {
+                "name": "Kaiser Hamid",
+                "email": "kaiser@example.com",
+                "passport": "A13276623"
+            }
+        ],
+        "total_price": 265,
+        "currency": "USD",
+        "created_at": "2026-06-26T13:15:41+00:00"
+    }
+}
+```
+
+---
+
+### Get Booking
+
+GET /api/bookings/{reference}
+
+**Response:** `200 OK`
+```json
+{
+    "status": true,
+    "message": "Booking retrieved successfully.",
+    "data": {
+        "reference": "BK-5ARROM",
+        "flight_id": "BS118_DAC_DXB_2026-07-01",
+        "flight_data": {
+            "flight_id": "BS118_DAC_DXB_2026-07-01",
+            "carrier": "BS",
+            "from": "DAC",
+            "to": "DXB",
+            "price": "265",
+            "currency": "USD",
+            "source": "provider_a"
+        },
+        "passengers": [
+            {
+                "name": "Kaiser Hamid",
+                "email": "kaiser@example.com",
+                "passport": "A13276623"
+            }
+        ],
+        "total_price": 265,
+        "currency": "USD",
+        "created_at": "2026-06-26T13:11:06+00:00"
+    }
+}
+```
+
+---
+
+## Key Decisions
+**Stable flight identifier:**
+The stable flight identifier is `flight_id` that is made with the combination of `{flight_number}_{from}_{to}_{departure_date}`.
+
+
+**Deduplication:**
+Same flight appearing across multiple providers is
+deduplicated by `flight_id`.
+The lowest price is retained.
+
+**Flight Snapshot on Booking:**
+Flight data is stored as a JSON snapshot at booking time,
+ensuring booking records remain self-contained even if
+provider data changes.
+
+**Mock Providers as HTTP Endpoints:**
+Providers are simulated as local HTTP endpoints on a
+separate port to mirror real integration patterns.
+
+**Source Tracking:**
+Each flight includes a `source` field indicating which
+provider returned the cheapest result, useful for
+traceability and debugging.
+
+---
+
+## Assumptions & Limitations
+
+- All prices are assumed to be in USD
+- No authentication or authorization implemented
+- Provider responses are not cached
+- No pagination on flight results
+
+---
+
+## Future Improvements
+
+- Unit and feature test coverage
+- Redis caching for provider responses
+- Pagination for large result sets
+- Currency conversion support
+- Provider timeout and retry handling
